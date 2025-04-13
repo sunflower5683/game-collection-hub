@@ -3,15 +3,13 @@
 import { useState, useEffect } from 'react';
 import { games } from "@/data/games";
 import GameEmbed from "@/components/game/GameEmbed";
-import { Metadata } from "next";
 import { notFound, useRouter } from "next/navigation";
-import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { generateGameSchema } from "@/app/api/schema";
 import Script from "next/script";
 import Image from "next/image";
 
 // 客户端组件不能直接导出元数据
-// 元数据在layout中定义
+// 元数据在layout.tsx中已定义
 
 interface Game {
   id: string;
@@ -24,30 +22,6 @@ interface Game {
   tags: string[];
   featured: boolean;
   isActive?: boolean;
-}
-
-// 动态生成元数据
-export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const slugParam = params.slug;
-  const game = games.find((g) => g.slug === slugParam);
-  
-  if (!game) {
-    return {
-      title: "游戏未找到 - 游戏集合站",
-      description: "抱歉，您请求的游戏未找到。请浏览我们的游戏库，选择其他游戏。",
-    };
-  }
-  
-  return {
-    title: `${game.title} - 在线玩 - 游戏集合站`,
-    description: game.description,
-    keywords: [...game.tags, game.category, "在线游戏", "免费游戏"].join(", "),
-    openGraph: {
-      title: `${game.title} - 在线玩 - 游戏集合站`,
-      description: game.description,
-      images: [game.thumbnailUrl],
-    },
-  };
 }
 
 export default function GamePage({ params }: { params: { slug: string } }) {
