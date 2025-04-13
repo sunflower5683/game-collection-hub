@@ -1,10 +1,47 @@
+"use client";
+
+import { useState } from 'react';
+
 export default function GameCard({ game }) {
+  const [imageLoaded, setImageLoaded] = useState(false);
+  const [imageError, setImageError] = useState(false);
+
+  const handleImageLoad = () => {
+    setImageLoaded(true);
+  };
+
+  const handleImageError = () => {
+    setImageError(true);
+  };
+
   return (
     <div className="bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-lg hover:shadow-xl transition-shadow duration-300 flex flex-col h-full">
       <div className="relative pb-[56.25%]">
-        <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
-          <span className="text-gray-500">图片加载中</span>
-        </div>
+        {/* 占位符 */}
+        {!imageLoaded && !imageError && (
+          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+            <span className="text-gray-500">图片加载中</span>
+          </div>
+        )}
+        
+        {/* 图片错误占位符 */}
+        {imageError && (
+          <div className="absolute inset-0 bg-gray-200 dark:bg-gray-700 flex items-center justify-center">
+            <span className="text-gray-500">{game.title}</span>
+          </div>
+        )}
+        
+        {/* 实际图片（隐藏直到加载完成） */}
+        <img
+          src={game.thumbnailUrl || '/images/game-placeholder.svg'}
+          alt={game.title}
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
+            imageLoaded && !imageError ? 'opacity-100' : 'opacity-0'
+          }`}
+          onLoad={handleImageLoad}
+          onError={handleImageError}
+          loading="lazy"
+        />
       </div>
       
       <div className="p-4 flex-grow">

@@ -1,6 +1,8 @@
 import { games } from "@/data/games";
 import GameList from "@/components/game/GameList";
 import { Metadata } from "next";
+import { generateGameCollectionSchema, generateOrganizationSchema } from "@/app/api/schema";
+import Script from "next/script";
 
 export const metadata: Metadata = {
   title: "游戏集合站 - 畅玩免费在线游戏",
@@ -15,8 +17,24 @@ export default function Home() {
   // 获取所有游戏分类
   const categories = [...new Set(games.map(game => game.category))];
   
+  // 生成结构化数据
+  const collectionSchema = generateGameCollectionSchema(featuredGames);
+  const organizationSchema = generateOrganizationSchema();
+  
   return (
     <div>
+      {/* 结构化数据 */}
+      <Script
+        id="collection-structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
+      />
+      <Script
+        id="organization-structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+      />
+      
       {/* 站点介绍 */}
       <section className="text-center py-10 mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg">
         <h1 className="text-4xl font-bold mb-4">欢迎来到游戏集合站</h1>

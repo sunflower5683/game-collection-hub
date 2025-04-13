@@ -1,0 +1,20 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="200" height="200" viewBox="0 0 200 200">
+  <defs>
+    <linearGradient id="logoGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#3B82F6" />
+      <stop offset="100%" stop-color="#8B5CF6" />
+    </linearGradient>
+  </defs>
+  <rect width="200" height="200" rx="20" fill="url(#logoGradient)" />
+  <g fill="white">
+    <!-- 游戏手柄 -->
+    <path d="M60 90 h20 v-10 h10 v10 h20 v20 h-20 v10 h-10 v-10 h-20 z" />
+    <!-- 方块游戏元素 -->
+    <rect x="120" y="80" width="20" height="20" />
+    <rect x="120" y="100" width="20" height="20" />
+    <rect x="140" y="100" width="20" height="20" />
+    <rect x="140" y="80" width="20" height="20" />
+    <!-- 游戏文字 -->
+    <text x="100" y="150" text-anchor="middle" font-size="24" font-weight="bold" font-family="Arial, sans-serif">游戏集合站</text>
+  </g>
+</svg> 
