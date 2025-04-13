@@ -1,11 +1,30 @@
+"use client";
+
+import { useState, useEffect } from 'react';
 import { games } from "@/data/games";
 import GameEmbed from "@/components/game/GameEmbed";
 import { Metadata } from "next";
-import { notFound } from "next/navigation";
+import { notFound, useRouter } from "next/navigation";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { generateGameSchema } from "@/app/api/schema";
 import Script from "next/script";
 import Image from "next/image";
+
+// 客户端组件不能直接导出元数据
+// 元数据在layout中定义
+
+interface Game {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  embedUrl: string;
+  thumbnailUrl: string;
+  category: string;
+  tags: string[];
+  featured: boolean;
+  isActive?: boolean;
+}
 
 // 动态生成元数据
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
@@ -31,34 +50,103 @@ export async function generateMetadata({ params }: { params: { slug: string } })
   };
 }
 
-export default async function GamePage({ params }: { params: { slug: string } }) {
-  const slugParam = params.slug;
-  const game = games.find((g) => g.slug === slugParam);
+export default function GamePage({ params }: { params: { slug: string } }) {
+  const router = useRouter();
+  const [gameData, setGameData] = useState<Game | null>(null);
+  const [relatedGames, setRelatedGames] = useState<Game[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   
-  // 如果游戏不存在，返回404
-  if (!game) {
-    notFound();
+  const slugParam = params.slug;
+  
+  useEffect(() => {
+    // 从localStorage获取游戏的激活状态和自定义游戏
+    try {
+      const activeStates = JSON.parse(localStorage.getItem('gameActiveStates') || '{}');
+      const customGames = JSON.parse(localStorage.getItem('adminGames') || '[]');
+      
+      // 合并默认游戏和自定义游戏
+      const allGames = [...games];
+      
+      // 添加未存在的自定义游戏
+      customGames.forEach((customGame: Game) => {
+        if (!allGames.some(g => g.id === customGame.id)) {
+          allGames.push(customGame);
+        }
+      });
+      
+      // 查找当前游戏
+      const foundGame = allGames.find(g => g.slug === slugParam);
+      
+      if (!foundGame) {
+        // 游戏不存在，重定向到404
+        notFound();
+        return;
+      }
+      
+      // 检查游戏是否处于激活状态
+      const isActive = activeStates[foundGame.id] === undefined ? true : activeStates[foundGame.id];
+      
+      if (!isActive) {
+        // 游戏已下架，重定向到首页
+        router.push('/');
+        return;
+      }
+      
+      // 设置游戏数据
+      setGameData({
+        ...foundGame,
+        isActive
+      });
+      
+      // 查找相关游戏（并过滤只显示已激活的）
+      const gamesWithState = allGames.map(game => ({
+        ...game,
+        isActive: activeStates[game.id] === undefined ? true : activeStates[game.id]
+      })).filter(game => game.isActive);
+      
+      // 同类游戏
+      const sameCategory = gamesWithState.filter(
+        g => g.category === foundGame.category && g.id !== foundGame.id
+      ).slice(0, 3);
+      
+      // 同标签游戏
+      const sameTags = gamesWithState.filter(
+        g => g.id !== foundGame.id && g.tags.some(tag => foundGame.tags.includes(tag))
+      ).slice(0, 3);
+      
+      // 合并相关游戏并去重
+      const related = [...sameCategory];
+      sameTags.forEach(g => {
+        if (!related.some(rg => rg.id === g.id)) {
+          related.push(g);
+        }
+      });
+      
+      // 限制最多显示6个相关游戏
+      setRelatedGames(related.slice(0, 6));
+      
+    } catch (error) {
+      console.error('Error loading game data:', error);
+      notFound();
+    } finally {
+      setIsLoading(false);
+    }
+  }, [slugParam, router]);
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
+  
+  if (!gameData) {
+    return null; // 重定向会处理
   }
   
   // 生成结构化数据
-  const structuredData = generateGameSchema(game);
-  
-  // 查找相关游戏
-  const sameCategory = games.filter((g) => g.category === game.category && g.id !== game.id).slice(0, 3);
-  const sameTags = games.filter((g) => 
-    g.id !== game.id && g.tags.some(tag => game.tags.includes(tag))
-  ).slice(0, 3);
-  
-  // 合并相关游戏并去重
-  const relatedGames = [...sameCategory];
-  sameTags.forEach(g => {
-    if (!relatedGames.some(rg => rg.id === g.id)) {
-      relatedGames.push(g);
-    }
-  });
-  
-  // 限制最多显示6个相关游戏
-  const limitedRelatedGames = relatedGames.slice(0, 6);
+  const structuredData = generateGameSchema(gameData);
   
   return (
     <div>
@@ -73,42 +161,42 @@ export default async function GamePage({ params }: { params: { slug: string } })
       <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
         <a href="/" className="hover:text-blue-600 dark:hover:text-blue-400">首页</a> &gt; 
         <a href="/games" className="mx-2 hover:text-blue-600 dark:hover:text-blue-400">游戏库</a> &gt; 
-        <a href={`/games?category=${game.category}`} className="mx-2 hover:text-blue-600 dark:hover:text-blue-400">{game.category}游戏</a> &gt; 
-        <span className="mx-2 text-gray-700 dark:text-gray-300">{game.title}</span>
+        <a href={`/games?category=${gameData.category}`} className="mx-2 hover:text-blue-600 dark:hover:text-blue-400">{gameData.category}游戏</a> &gt; 
+        <span className="mx-2 text-gray-700 dark:text-gray-300">{gameData.title}</span>
       </div>
       
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
           {/* 游戏标题 */}
           <h1 className="text-3xl font-bold mb-4 text-gray-800 dark:text-white">
-            {game.title}
+            {gameData.title}
           </h1>
           
           {/* 游戏嵌入 */}
           <div className="mb-8">
-            <GameEmbed game={game} />
+            <GameEmbed game={gameData} />
           </div>
           
           {/* 游戏介绍 */}
           <div className="mb-8">
             <h2 className="text-2xl font-bold mb-4 text-gray-800 dark:text-white">游戏介绍</h2>
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md">
-              <p className="text-gray-700 dark:text-gray-300">{game.description}</p>
+              <p className="text-gray-700 dark:text-gray-300">{gameData.description}</p>
               
               <div className="mt-6">
                 <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">分类</h3>
                 <a 
-                  href={`/games?category=${game.category}`}
+                  href={`/games?category=${gameData.category}`}
                   className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-3 py-1 rounded-full text-sm hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
                 >
-                  {game.category}
+                  {gameData.category}
                 </a>
               </div>
               
               <div className="mt-4">
                 <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">标签</h3>
                 <div className="flex flex-wrap gap-2">
-                  {game.tags.map((tag) => (
+                  {gameData.tags.map((tag) => (
                     <a 
                       key={tag} 
                       href={`/games?tag=${tag}`}
@@ -138,13 +226,13 @@ export default async function GamePage({ params }: { params: { slug: string } })
             <div className="space-y-4">
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">分类</p>
-                <p className="font-medium text-gray-800 dark:text-white">{game.category}</p>
+                <p className="font-medium text-gray-800 dark:text-white">{gameData.category}</p>
               </div>
               
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">标签</p>
                 <div className="flex flex-wrap gap-2 mt-1">
-                  {game.tags.map(tag => (
+                  {gameData.tags.map(tag => (
                     <span key={tag} className="text-xs bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded">
                       {tag}
                     </span>
@@ -155,18 +243,18 @@ export default async function GamePage({ params }: { params: { slug: string } })
               <div>
                 <p className="text-sm text-gray-500 dark:text-gray-400">适合人群</p>
                 <p className="font-medium text-gray-800 dark:text-white">
-                  {game.tags.includes("儿童") ? "儿童友好" : "所有年龄段"}
+                  {gameData.tags.includes("儿童") ? "儿童友好" : "所有年龄段"}
                 </p>
               </div>
             </div>
           </div>
           
           {/* 相似游戏推荐 */}
-          {limitedRelatedGames.length > 0 && (
+          {relatedGames.length > 0 && (
             <div>
               <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-white">相似游戏</h2>
               <div className="grid grid-cols-1 gap-4">
-                {limitedRelatedGames.map((relatedGame) => (
+                {relatedGames.map((relatedGame) => (
                   <a
                     key={relatedGame.id}
                     href={`/games/${relatedGame.slug}`}

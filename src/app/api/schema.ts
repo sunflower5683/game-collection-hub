@@ -71,4 +71,24 @@ export function generateOrganizationSchema(baseUrl: string = 'https://gamecollec
       contactType: 'customer service'
     }
   };
+}
+
+/**
+ * 创建整个网站的通用JSON-LD结构化数据
+ * @param baseUrl 网站基础URL
+ * @returns JSON-LD结构化数据对象
+ */
+export function generateWebsiteSchema(baseUrl: string = 'https://gamecollectionhub.example.com') {
+  return {
+    '@context': 'https://schema.org',
+    '@type': 'WebSite',
+    name: '游戏集合站',
+    url: baseUrl,
+    description: '提供各种免费在线游戏，让您在任何设备上都能随时享受游戏的乐趣。',
+    potentialAction: {
+      '@type': 'SearchAction',
+      target: `${baseUrl}/search?q={search_term_string}`,
+      'query-input': 'required name=search_term_string'
+    }
+  };
 } 

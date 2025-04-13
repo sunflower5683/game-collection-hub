@@ -1,34 +1,24 @@
 "use client";
 
-import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
 export default function SearchBar({ onSearch }) {
   const [query, setQuery] = useState('');
-  const router = useRouter();
-
+  
   const handleSearch = (e) => {
     e.preventDefault();
-    if (query.trim()) {
-      if (onSearch) {
-        // 如果提供了onSearch函数，使用它
-        onSearch(query.trim());
-      } else {
-        // 否则使用路由导航到搜索页面
-        router.push(`/search?q=${encodeURIComponent(query.trim())}`);
-      }
-    }
+    onSearch(query.trim());
   };
-
+  
   return (
-    <form onSubmit={handleSearch} className="w-full max-w-md">
+    <form onSubmit={handleSearch} className="w-full">
       <div className="relative flex items-center">
         <input
           type="text"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
           placeholder="搜索游戏..."
-          className="w-full py-2 px-4 pr-10 rounded-full border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-full py-2 px-4 pr-10 rounded-lg border border-gray-300 dark:border-gray-700 bg-white dark:bg-gray-800 text-gray-800 dark:text-gray-200 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
         />
         <button
           type="submit"

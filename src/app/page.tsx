@@ -1,76 +1,185 @@
+"use client";
+
 import { games } from "@/data/games";
 import GameList from "@/components/game/GameList";
-import { Metadata } from "next";
 import { generateGameCollectionSchema, generateOrganizationSchema } from "@/app/api/schema";
 import Script from "next/script";
+import { useEffect, useState } from "react";
 
-export const metadata: Metadata = {
-  title: "游戏集合站 - 畅玩免费在线游戏",
-  description: "在游戏集合站体验各种免费在线游戏，包括益智、街机、动作等多种类型，让您在任何设备上都能享受游戏乐趣。",
-  keywords: "在线游戏, 免费游戏, 网页游戏, 休闲游戏, 益智游戏",
-};
+// 客户端组件不能直接导出静态元数据
+// 元数据已移到layout.tsx中
+
+interface Game {
+  id: string;
+  slug: string;
+  title: string;
+  description: string;
+  embedUrl: string;
+  thumbnailUrl: string;
+  category: string;
+  tags: string[];
+  featured: boolean;
+  isActive?: boolean;
+}
 
 export default function Home() {
-  const featuredGames = games.filter(game => game.featured);
-  const recentGames = [...games].sort(() => 0.5 - Math.random()).slice(0, 4);
+  const [activeGames, setActiveGames] = useState<Game[]>([]);
+  const [isLoaded, setIsLoaded] = useState(false);
+
+  useEffect(() => {
+    // 从localStorage获取游戏的激活状态
+    try {
+      const activeStates = JSON.parse(localStorage.getItem('gameActiveStates') || '{}');
+      const customGames = JSON.parse(localStorage.getItem('adminGames') || '[]');
+      
+      // 合并默认游戏和自定义游戏
+      const allGames = [...games];
+      
+      // 添加未存在的自定义游戏
+      customGames.forEach((customGame: Game) => {
+        if (!allGames.some(g => g.id === customGame.id)) {
+          allGames.push(customGame);
+        }
+      });
+      
+      // 应用激活状态过滤
+      const gamesWithState = allGames.map(game => ({
+        ...game,
+        isActive: activeStates[game.id] === undefined ? true : activeStates[game.id]
+      })).filter(game => game.isActive);
+      
+      setActiveGames(gamesWithState);
+    } catch (error) {
+      console.error('Error loading game states:', error);
+      // 出错时回退到默认游戏列表
+      setActiveGames(games);
+    } finally {
+      setIsLoaded(true);
+    }
+  }, []);
+
+  if (!isLoaded) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+      </div>
+    );
+  }
   
-  // 获取所有游戏分类
-  const categories = [...new Set(games.map(game => game.category))];
+  // 获取精选游戏
+  const featuredGames = activeGames.filter(game => game.featured);
   
-  // 生成结构化数据
-  const collectionSchema = generateGameCollectionSchema(featuredGames);
-  const organizationSchema = generateOrganizationSchema();
+  // 获取最新添加的游戏（假设按ID倒序为最新添加）
+  const recentGames = [...activeGames].sort((a, b) => b.id.localeCompare(a.id)).slice(0, 8);
+  
+  // 获取所有分类
+  const categories = Array.from(new Set(activeGames.map(game => game.category)));
+  
+  // 用于结构化数据
+  const featuredGameSchemas = featuredGames.length > 0 
+    ? featuredGames.map(game => generateGameCollectionSchema([game])) 
+    : [];
+  
+  // 组织模式
+  const orgSchema = generateOrganizationSchema();
   
   return (
-    <div>
+    <main>
       {/* 结构化数据 */}
       <Script
-        id="collection-structured-data"
+        id="structured-data-organization"
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(collectionSchema) }}
-      />
-      <Script
-        id="organization-structured-data"
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationSchema) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(orgSchema) }}
       />
       
-      {/* 站点介绍 */}
-      <section className="text-center py-10 mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg">
-        <h1 className="text-4xl font-bold mb-4">欢迎来到游戏集合站</h1>
-        <p className="max-w-2xl mx-auto text-lg">
-          探索各种有趣的在线游戏，随时随地享受游戏乐趣
-        </p>
-      </section>
+      {featuredGameSchemas.map((schema, index) => (
+        <Script
+          key={`structured-data-featured-${index}`}
+          id={`structured-data-featured-${index}`}
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(schema) }}
+        />
+      ))}
       
-      {/* 精选游戏 */}
-      <GameList games={featuredGames} title="精选游戏" />
-      
-      {/* 分类导航 */}
-      <section className="py-8">
-        <h2 className="text-2xl font-bold mb-6 text-gray-800 dark:text-white">
-          游戏分类
-        </h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-          {categories.map(category => (
-            <a 
-              key={category}
-              href={`/categories/${category}`}
-              className="block p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300 text-center"
-            >
-              <h3 className="text-xl font-semibold text-gray-900 dark:text-white">
-                {category}游戏
-              </h3>
-              <p className="mt-2 text-gray-600 dark:text-gray-300">
-                查看所有{category}类游戏
-              </p>
-            </a>
-          ))}
+      {/* 顶部横幅 */}
+      <section className="py-16 bg-gradient-to-r from-blue-600 to-purple-600 text-white text-center">
+        <div className="container mx-auto px-4">
+          <h1 className="text-4xl font-bold mb-4">欢迎来到游戏集合站</h1>
+          <p className="text-xl max-w-3xl mx-auto mb-8">
+            发现并畅玩各种精彩在线游戏，无需下载，随时随地开始您的游戏之旅！
+          </p>
+          <a 
+            href="/games" 
+            className="inline-block bg-white text-blue-600 font-medium py-3 px-8 rounded-full hover:bg-gray-100 transition duration-300"
+          >
+            浏览全部游戏
+          </a>
         </div>
       </section>
       
-      {/* 最近添加 */}
-      <GameList games={recentGames} title="最近添加" />
-    </div>
+      {/* 精选游戏 */}
+      {featuredGames.length > 0 && (
+        <section className="py-16 bg-gray-50 dark:bg-gray-900">
+          <div className="container mx-auto px-4">
+            <GameList 
+              games={featuredGames} 
+              title="精选游戏" 
+            />
+          </div>
+        </section>
+      )}
+      
+      {/* 最新游戏 */}
+      <section className="py-16">
+        <div className="container mx-auto px-4">
+          <GameList 
+            games={recentGames} 
+            title="最近添加" 
+          />
+        </div>
+      </section>
+      
+      {/* 游戏分类 */}
+      <section className="py-16 bg-gray-50 dark:bg-gray-900">
+        <div className="container mx-auto px-4">
+          <h2 className="text-2xl font-bold mb-8 text-gray-800 dark:text-white">
+            游戏分类
+          </h2>
+          
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {categories.map(category => (
+              <a 
+                key={category}
+                href={`/games?category=${category}`}
+                className="block p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+              >
+                <h3 className="text-xl font-semibold mb-3 text-gray-800 dark:text-white">
+                  {category}游戏
+                </h3>
+                <p className="text-gray-600 dark:text-gray-300 mb-4">
+                  探索我们精选的{category}游戏集合，找到适合你的休闲娱乐选择。
+                </p>
+                <span className="text-blue-600 dark:text-blue-400 flex items-center">
+                  查看更多
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 ml-1" viewBox="0 0 20 20" fill="currentColor">
+                    <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
+                  </svg>
+                </span>
+              </a>
+            ))}
+          </div>
+        </div>
+      </section>
+      
+      {/* 管理员入口 */}
+      <div className="text-center py-8">
+        <a
+          href="/admin"
+          className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
+        >
+          管理员入口
+        </a>
+      </div>
+    </main>
   );
 } 
