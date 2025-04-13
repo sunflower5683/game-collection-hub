@@ -1,150 +1,228 @@
 import { games } from "@/data/games";
-import { filterGames, paginateGames, getAllTags, getPopularTags } from "@/lib/utils";
-import GameList from "@/components/game/GameList";
-import CategoryFilter from "@/components/ui/CategoryFilter";
-import TagFilter from "@/components/ui/TagFilter";
-import Pagination from "@/components/ui/Pagination";
 import { Metadata } from "next";
+import Script from "next/script";
+import { generateGameCollectionSchema } from "@/app/api/schema";
+import { shuffleArray } from "@/lib/utils";
 
 export const metadata: Metadata = {
-  title: "游戏库 - 游戏集合站",
-  description: "浏览我们丰富的游戏库，各种类型的在线游戏等您来挑战。益智、街机、棋牌，总有一款适合您！",
-  keywords: "游戏库, 游戏列表, 在线游戏, 免费游戏",
+  title: "游戏库 - 畅玩各种免费在线游戏 - 游戏集合站",
+  description: "浏览我们丰富多样的游戏库，包含益智、街机、棋牌等多种类型的免费在线游戏，随时随地开始您的游戏体验。",
+  keywords: "游戏库, 免费游戏, 在线游戏, 休闲游戏, 益智游戏, 街机游戏",
+  openGraph: {
+    title: "游戏库 - 畅玩各种免费在线游戏 - 游戏集合站",
+    description: "浏览我们丰富多样的游戏库，体验各种类型的免费在线游戏。",
+    url: "https://gamecollectionhub.example.com/games",
+    siteName: "游戏集合站",
+    locale: "zh_CN",
+    type: "website",
+  },
 };
 
-export default function GamesPage({ searchParams }: { searchParams: { category?: string; tag?: string; page?: string } }) {
-  const category = searchParams.category || '';
-  const tag = searchParams.tag || '';
-  const currentPage = parseInt(searchParams.page || '1', 10);
+export default function GamesPage({ searchParams }: { searchParams?: { category?: string; tag?: string; page?: string; } }) {
+  // 获取分类和标签
+  const category = searchParams?.category || '';
+  const tag = searchParams?.tag || '';
   
-  // 获取所有游戏分类
-  const categories = [...new Set(games.map(game => game.category))];
+  // 获取页码，默认为1
+  const currentPage = searchParams?.page ? parseInt(searchParams.page) : 1;
+  const itemsPerPage = 12;
   
-  // 获取热门游戏标签
-  const popularTags = getPopularTags(games, 15);
+  // 获取所有分类和标签
+  const allCategories = [...new Set(games.map(game => game.category))];
+  const allTags = [...new Set(games.flatMap(game => game.tags))];
   
-  // 根据分类和标签过滤游戏
-  const filteredGames = filterGames(games, '', category, tag);
+  // 过滤游戏
+  let filteredGames = [...games];
+  
+  if (category) {
+    filteredGames = filteredGames.filter(game => game.category === category);
+  }
+  
+  if (tag) {
+    filteredGames = filteredGames.filter(game => game.tags.includes(tag));
+  }
   
   // 分页处理
-  const itemsPerPage = 12;
-  const paginatedGames = paginateGames(filteredGames, currentPage, itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedGames = filteredGames.slice(startIndex, endIndex);
   
-  // 按分类组织游戏
-  const gamesByCategory = categories.reduce((acc, cat) => {
-    acc[cat] = games.filter(game => game.category === cat);
-    return acc;
-  }, {} as Record<string, typeof games>);
+  // 生成结构化数据
+  const gamesForSchema = filteredGames.length > 20 
+    ? shuffleArray(filteredGames).slice(0, 20) 
+    : filteredGames;
+  const structuredData = generateGameCollectionSchema(gamesForSchema);
+  
+  // 计算游戏总数和页数
+  const totalGames = filteredGames.length;
+  const totalPages = Math.ceil(totalGames / itemsPerPage);
   
   return (
-    <div>
-      <section className="text-center py-8 mb-8 bg-gray-100 dark:bg-gray-800 rounded-lg">
-        <h1 className="text-3xl font-bold mb-3 text-gray-900 dark:text-white">游戏库</h1>
-        <p className="text-gray-600 dark:text-gray-300 max-w-2xl mx-auto">
-          浏览我们精心收集的各类游戏，随时畅玩！
-        </p>
-      </section>
+    <div className="container mx-auto px-4 py-8">
+      {/* 结构化数据 */}
+      <Script
+        id="games-structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+    
+      <h1 className="text-3xl font-bold mb-8 text-center text-gray-900 dark:text-white">
+        {category ? `${category}游戏` : tag ? `${tag}游戏` : '游戏库'}
+      </h1>
       
-      {/* 游戏分类计数 */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-4 mb-10">
-        <div className="bg-blue-100 dark:bg-blue-900 p-4 rounded-lg text-center">
-          <span className="block text-2xl font-bold text-blue-800 dark:text-blue-100">
-            {games.length}
-          </span>
-          <span className="text-blue-600 dark:text-blue-200">总游戏数</span>
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+        {/* 侧边栏过滤器 */}
+        <div className="lg:col-span-1">
+          <div className="sticky top-24 bg-white dark:bg-gray-800 rounded-lg shadow-md p-6">
+            <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-white">游戏分类</h2>
+            <nav className="mb-8">
+              <ul className="space-y-2">
+                <li>
+                  <a 
+                    href="/games" 
+                    className={`block py-2 px-4 rounded ${!category && !tag ? 'bg-blue-600 text-white' : 'hover:bg-gray-100 dark:hover:bg-gray-700'}`}
+                  >
+                    全部游戏
+                  </a>
+                </li>
+                {allCategories.map(cat => (
+                  <li key={cat}>
+                    <a 
+                      href={`/games?category=${cat}`} 
+                      className={`block py-2 px-4 rounded ${
+                        category === cat 
+                          ? 'bg-blue-600 text-white' 
+                          : 'hover:bg-gray-100 dark:hover:bg-gray-700'
+                      }`}
+                    >
+                      {cat}游戏
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </nav>
+            
+            <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-white">热门标签</h2>
+            <div className="flex flex-wrap gap-2">
+              {allTags.map(t => (
+                <a 
+                  key={t} 
+                  href={`/games?tag=${t}`}
+                  className={`inline-block px-3 py-1 rounded-full text-sm ${
+                    tag === t 
+                      ? 'bg-blue-600 text-white' 
+                      : 'bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
+                  }`}
+                >
+                  {t}
+                </a>
+              ))}
+            </div>
+          </div>
         </div>
         
-        {categories.map(cat => (
-          <div key={cat} className="bg-purple-100 dark:bg-purple-900 p-4 rounded-lg text-center">
-            <span className="block text-2xl font-bold text-purple-800 dark:text-purple-100">
-              {gamesByCategory[cat].length}
-            </span>
-            <span className="text-purple-600 dark:text-purple-200">{cat}游戏</span>
+        {/* 游戏列表 */}
+        <div className="lg:col-span-3">
+          {/* 筛选结果统计 */}
+          <div className="mb-6 flex justify-between items-center">
+            <p className="text-gray-600 dark:text-gray-300">
+              显示 <span className="font-semibold">{totalGames}</span> 个游戏中的 
+              <span className="font-semibold"> {startIndex + 1}-{Math.min(endIndex, totalGames)}</span>
+            </p>
+            
+            {(category || tag) && (
+              <a 
+                href="/games" 
+                className="text-blue-600 dark:text-blue-400 hover:underline flex items-center"
+              >
+                <svg className="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                </svg>
+                清除筛选
+              </a>
+            )}
           </div>
-        ))}
-      </div>
-      
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-8">
-        <div className="md:col-span-1">
-          <CategoryFilter categories={categories} selectedCategory={category} />
-          <TagFilter tags={popularTags} selectedTag={tag} />
           
-          {/* 当前筛选条件 */}
-          {(category || tag) && (
-            <div className="mt-6 p-4 bg-blue-50 dark:bg-blue-900/20 rounded-lg">
-              <h3 className="font-medium text-gray-800 dark:text-white mb-2">当前筛选</h3>
-              <div className="flex flex-wrap gap-2">
-                {category && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200">
-                    分类: {category}
-                    <button 
-                      onClick={() => {
-                        const params = new URLSearchParams(searchParams);
-                        params.delete('category');
-                        window.location.href = `${window.location.pathname}?${params.toString()}`;
-                      }}
-                      className="ml-1 text-blue-500 hover:text-blue-700 dark:text-blue-300 dark:hover:text-blue-100"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-                
-                {tag && (
-                  <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200">
-                    标签: {tag}
-                    <button 
-                      onClick={() => {
-                        const params = new URLSearchParams(searchParams);
-                        params.delete('tag');
-                        window.location.href = `${window.location.pathname}?${params.toString()}`;
-                      }}
-                      className="ml-1 text-green-500 hover:text-green-700 dark:text-green-300 dark:hover:text-green-100"
-                    >
-                      ×
-                    </button>
-                  </span>
-                )}
-              </div>
+          {/* 无结果提示 */}
+          {paginatedGames.length === 0 && (
+            <div className="text-center py-12 bg-white dark:bg-gray-800 rounded-lg shadow">
+              <svg className="mx-auto h-12 w-12 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+              <h3 className="mt-4 text-lg font-medium text-gray-900 dark:text-white">未找到游戏</h3>
+              <p className="mt-2 text-gray-500 dark:text-gray-400">
+                抱歉，没有符合当前筛选条件的游戏。
+              </p>
+              <a 
+                href="/games" 
+                className="mt-6 inline-block px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+              >
+                查看全部游戏
+              </a>
             </div>
           )}
-        </div>
-        
-        <div className="md:col-span-3">
-          {(category || tag) ? (
-            <>
-              <GameList 
-                games={paginatedGames} 
-                title={category ? `${category}游戏` : (tag ? `标签: ${tag}` : "所有游戏")} 
-              />
-              {filteredGames.length > itemsPerPage && (
-                <Pagination 
-                  totalItems={filteredGames.length} 
-                  itemsPerPage={itemsPerPage} 
-                  currentPage={currentPage} 
-                />
-              )}
-            </>
-          ) : (
-            // 如果没有选择分类或标签，则按分类展示游戏
-            categories.map(cat => (
-              <div key={cat} id={cat} className="mb-12">
-                <GameList 
-                  games={gamesByCategory[cat].slice(0, 4)} 
-                  title={`${cat}游戏`} 
-                />
-                {gamesByCategory[cat].length > 4 && (
-                  <div className="text-right mt-4">
-                    <a 
-                      href={`/games?category=${cat}`}
-                      className="text-blue-600 hover:text-blue-800 dark:text-blue-400 dark:hover:text-blue-300"
-                    >
-                      查看更多 {cat}游戏 &rarr;
-                    </a>
+          
+          {/* 游戏卡片网格 */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {paginatedGames.map(game => (
+              <a 
+                key={game.id} 
+                href={`/games/${game.slug}`}
+                className="block bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300"
+              >
+                <div className="relative pb-[56.25%] bg-gray-200 dark:bg-gray-700">
+                  <img 
+                    src={game.thumbnailUrl || '/images/game-placeholder.svg'} 
+                    alt={game.title}
+                    className="absolute inset-0 w-full h-full object-cover"
+                    loading="lazy"
+                  />
+                </div>
+                
+                <div className="p-4">
+                  <h3 className="font-semibold text-lg text-gray-900 dark:text-white mb-2">
+                    {game.title}
+                  </h3>
+                  <p className="text-sm text-gray-600 dark:text-gray-300 mb-3 line-clamp-2">
+                    {game.description.substring(0, 80) + (game.description.length > 80 ? '...' : '')}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <span className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-2 py-1 rounded text-xs">
+                      {game.category}
+                    </span>
+                    {game.tags.slice(0, 2).map(tag => (
+                      <span 
+                        key={tag} 
+                        className="inline-block bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-2 py-1 rounded text-xs"
+                      >
+                        {tag}
+                      </span>
+                    ))}
                   </div>
-                )}
-              </div>
-            ))
+                </div>
+              </a>
+            ))}
+          </div>
+          
+          {/* 分页控件 */}
+          {totalPages > 1 && (
+            <div className="mt-10 flex justify-center">
+              <nav className="inline-flex rounded-md shadow">
+                {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                  <a
+                    key={page}
+                    href={`/games?${category ? `category=${category}&` : ''}${tag ? `tag=${tag}&` : ''}page=${page}`}
+                    className={`px-4 py-2 ${
+                      currentPage === page
+                        ? 'bg-blue-600 text-white'
+                        : 'bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700'
+                    } ${page === 1 ? 'rounded-l-md' : ''} ${page === totalPages ? 'rounded-r-md' : ''} border border-gray-300 dark:border-gray-600`}
+                  >
+                    {page}
+                  </a>
+                ))}
+              </nav>
+            </div>
           )}
         </div>
       </div>

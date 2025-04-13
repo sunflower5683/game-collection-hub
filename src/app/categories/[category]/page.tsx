@@ -2,6 +2,7 @@ import { games } from "@/data/games";
 import GameList from "@/components/game/GameList";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import Script from "next/script";
 
 // 动态生成元数据
 export async function generateMetadata({ params }: { params: { category: string } }): Promise<Metadata> {
@@ -19,6 +20,14 @@ export async function generateMetadata({ params }: { params: { category: string 
     title: `${decodedCategory}游戏 - 游戏集合站`,
     description: `探索我们精选的${decodedCategory}游戏，包括${categoryGames.slice(0, 3).map(game => game.title).join('、')}等多款有趣游戏。`,
     keywords: [`${decodedCategory}游戏`, "在线游戏", "免费游戏", ...categoryGames.slice(0, 5).map(game => game.title)].join(", "),
+    openGraph: {
+      title: `${decodedCategory}游戏 - 游戏集合站`,
+      description: `探索我们精选的${decodedCategory}游戏，畅玩各种${decodedCategory}类型的免费在线游戏。`,
+      url: `https://gamecollectionhub.example.com/categories/${encodeURIComponent(decodedCategory)}`,
+      siteName: "游戏集合站",
+      locale: "zh_CN",
+      type: "website",
+    },
   };
 }
 
@@ -34,8 +43,32 @@ export default function CategoryPage({ params }: { params: { category: string } 
   // 获取所有分类，用于分类导航
   const allCategories = [...new Set(games.map(game => game.category))];
   
+  // 生成结构化数据
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@type': 'CollectionPage',
+    name: `${decodedCategory}游戏 - 游戏集合站`,
+    description: `探索我们精选的${decodedCategory}游戏，包括${categoryGames.slice(0, 3).map(game => game.title).join('、')}等多款有趣游戏。`,
+    url: `https://gamecollectionhub.example.com/categories/${encodeURIComponent(decodedCategory)}`,
+    hasPart: categoryGames.map(game => ({
+      '@type': 'VideoGame',
+      name: game.title,
+      description: game.description,
+      url: `https://gamecollectionhub.example.com/games/${game.slug}`,
+      image: game.thumbnailUrl || 'https://gamecollectionhub.example.com/images/game-placeholder.svg',
+      genre: [game.category, ...game.tags],
+    }))
+  };
+  
   return (
     <div>
+      {/* 结构化数据 */}
+      <Script
+        id="category-structured-data"
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+    
       <section className="text-center py-8 mb-8 bg-gradient-to-r from-blue-600 to-purple-600 text-white rounded-lg">
         <h1 className="text-3xl font-bold mb-3">{decodedCategory}游戏</h1>
         <p className="max-w-2xl mx-auto">

@@ -1,70 +1,99 @@
+import Link from "next/link";
 import { Metadata } from "next";
+import { games } from "@/data/games";
 
 export const metadata: Metadata = {
-  title: "页面未找到 - 游戏集合站",
-  description: "抱歉，您请求的页面不存在。请返回首页浏览我们的游戏库。",
+  title: "页面未找到 - 404 错误 - 游戏集合站",
+  description: "抱歉，您请求的页面不存在。请返回首页或浏览我们的游戏库。",
+  robots: {
+    index: false,
+    follow: true,
+  },
 };
 
 export default function NotFound() {
+  // 随机获取3个游戏作为推荐
+  const randomGames = [...games]
+    .sort(() => 0.5 - Math.random())
+    .slice(0, 3);
+
+  // 获取所有游戏分类
+  const categories = [...new Set(games.map((game) => game.category))];
+
   return (
-    <div className="max-w-4xl mx-auto text-center py-16">
-      <div className="mb-8">
-        <svg xmlns="http://www.w3.org/2000/svg" className="h-24 w-24 mx-auto text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9.172 16.172a4 4 0 015.656 0M9 10h.01M15 10h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </div>
-      
-      <h1 className="text-4xl font-bold mb-4 text-gray-800 dark:text-white">404 - 页面未找到</h1>
-      
-      <p className="text-xl text-gray-600 dark:text-gray-300 mb-8 max-w-lg mx-auto">
-        抱歉，您访问的页面似乎已经消失在了虚拟世界中。
-      </p>
-      
-      <div className="flex flex-col sm:flex-row justify-center gap-4">
-        <a 
-          href="/" 
-          className="bg-blue-600 hover:bg-blue-700 text-white py-3 px-8 rounded-lg transition duration-150"
-        >
-          返回首页
-        </a>
+    <div className="min-h-[70vh] flex flex-col items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <div className="text-center max-w-2xl">
+        <h1 className="text-6xl font-bold text-gray-900 dark:text-white mb-4">
+          <span className="text-blue-600">4</span>
+          <span className="text-red-500">0</span>
+          <span className="text-blue-600">4</span>
+        </h1>
         
-        <a 
-          href="/games" 
-          className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white py-3 px-8 rounded-lg transition duration-150"
-        >
-          浏览游戏库
-        </a>
-      </div>
-      
-      <div className="mt-16">
-        <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
-          为什么不试试以下游戏？
+        <h2 className="text-3xl font-bold text-gray-800 dark:text-white mb-6">
+          页面未找到
         </h2>
         
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-3xl mx-auto">
-          <a 
-            href="/games/tetris" 
-            className="block bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+        <p className="text-lg text-gray-600 dark:text-gray-300 mb-8">
+          抱歉，您请求的页面不存在或已被移除。请尝试访问其他页面或返回首页。
+        </p>
+        
+        <div className="flex flex-wrap justify-center gap-4 mb-12">
+          <Link
+            href="/"
+            className="px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
           >
-            <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white">俄罗斯方块</h3>
-            <p className="text-gray-600 dark:text-gray-300 text-sm">经典方块益智游戏</p>
-          </a>
+            返回首页
+          </Link>
           
-          <a 
-            href="/games/2048" 
-            className="block bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
+          <Link
+            href="/games"
+            className="px-6 py-3 bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-white rounded-lg hover:bg-gray-300 dark:hover:bg-gray-600 transition-colors duration-200"
           >
-            <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white">2048</h3>
-            <p className="text-gray-600 dark:text-gray-300 text-sm">数字合并益智游戏</p>
-          </a>
+            浏览游戏库
+          </Link>
+        </div>
+        
+        {/* 推荐游戏 */}
+        <div className="mt-12">
+          <h3 className="text-xl font-semibold mb-6 text-gray-800 dark:text-white">
+            您可能会喜欢这些游戏
+          </h3>
           
-          <a 
-            href="/games/snake" 
-            className="block bg-white dark:bg-gray-800 p-6 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
-          >
-            <h3 className="text-lg font-medium mb-2 text-gray-900 dark:text-white">贪吃蛇</h3>
-            <p className="text-gray-600 dark:text-gray-300 text-sm">经典街机游戏</p>
-          </a>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+            {randomGames.map((game) => (
+              <Link
+                key={game.id}
+                href={`/games/${game.slug}`}
+                className="block p-4 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow"
+              >
+                <h4 className="font-medium text-gray-900 dark:text-white">
+                  {game.title}
+                </h4>
+                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
+                  {game.category} · {game.tags[0]}
+                </p>
+              </Link>
+            ))}
+          </div>
+        </div>
+        
+        {/* 分类导航 */}
+        <div className="mt-10">
+          <h3 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">
+            浏览游戏分类
+          </h3>
+          
+          <div className="flex flex-wrap justify-center gap-3 mt-3">
+            {categories.map((category) => (
+              <Link
+                key={category}
+                href={`/categories/${category}`}
+                className="px-4 py-2 bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-white rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+              >
+                {category}游戏
+              </Link>
+            ))}
+          </div>
         </div>
       </div>
     </div>

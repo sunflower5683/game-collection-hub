@@ -5,10 +5,11 @@ import { notFound } from "next/navigation";
 import LoadingSpinner from "@/components/ui/LoadingSpinner";
 import { generateGameSchema } from "@/app/api/schema";
 import Script from "next/script";
+import Image from "next/image";
 
 // 动态生成元数据
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const slugParam = await params.slug;
+  const slugParam = params.slug;
   const game = games.find((g) => g.slug === slugParam);
   
   if (!game) {
@@ -31,7 +32,7 @@ export async function generateMetadata({ params }: { params: { slug: string } })
 }
 
 export default async function GamePage({ params }: { params: { slug: string } }) {
-  const slugParam = await params.slug;
+  const slugParam = params.slug;
   const game = games.find((g) => g.slug === slugParam);
   
   // 如果游戏不存在，返回404
@@ -172,13 +173,16 @@ export default async function GamePage({ params }: { params: { slug: string } })
                     className="block bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300"
                   >
                     <div className="flex items-center p-4">
-                      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded mr-4 flex-shrink-0 flex items-center justify-center">
+                      <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded mr-4 flex-shrink-0 flex items-center justify-center relative">
                         {relatedGame.thumbnailUrl ? (
-                          <img 
+                          <Image 
                             src={relatedGame.thumbnailUrl} 
                             alt={relatedGame.title} 
-                            className="w-full h-full object-cover rounded"
-                            loading="lazy"
+                            fill={true}
+                            sizes="64px"
+                            className="object-cover rounded"
+                            priority={false}
+                            quality={75}
                           />
                         ) : (
                           <span className="text-xs text-gray-500">{relatedGame.title.substring(0, 2)}</span>
