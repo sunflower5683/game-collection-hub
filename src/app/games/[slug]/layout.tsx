@@ -3,7 +3,15 @@ import { games } from "@/data/games";
 
 // 动态生成元数据
 export async function generateMetadata({ params }: { params: { slug: string } }): Promise<Metadata> {
-  const slugParam = params.slug;
+  // 确保params是可用的
+  const slugParam = params?.slug;
+  if (!slugParam) {
+    return {
+      title: "加载中 - 游戏集合站",
+      description: "正在加载游戏内容...",
+    };
+  }
+  
   const game = games.find((g) => g.slug === slugParam);
   
   if (!game) {

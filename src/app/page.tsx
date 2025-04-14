@@ -32,23 +32,32 @@ export default function Home() {
       const activeStates = JSON.parse(localStorage.getItem('gameActiveStates') || '{}');
       const customGames = JSON.parse(localStorage.getItem('adminGames') || '[]');
       
+      console.log("首页 - 自定义游戏数据:", customGames);
+      if (customGames.length > 0) {
+        console.log("首页 - 第一个自定义游戏:", JSON.stringify(customGames[0], null, 2));
+      }
+      
       // 合并默认游戏和自定义游戏
       const allGames = [...games];
       
-      // 添加未存在的自定义游戏
+      // 直接添加自定义游戏，不检查ID重复
       customGames.forEach((customGame: Game) => {
-        if (!allGames.some(g => g.id === customGame.id)) {
-          allGames.push(customGame);
-        }
+        console.log(`添加自定义游戏: ${customGame.title} (ID: ${customGame.id})`);
+        allGames.push(customGame);
       });
+      
+      console.log(`合并后游戏总数: ${allGames.length}`);
       
       // 应用激活状态过滤
       const gamesWithState = allGames.map(game => ({
         ...game,
         isActive: activeStates[game.id] === undefined ? true : activeStates[game.id]
-      })).filter(game => game.isActive);
+      }));
       
+      // 先不过滤，显示所有游戏
       setActiveGames(gamesWithState);
+      console.log(`设置激活游戏数: ${gamesWithState.length}`);
+      
     } catch (error) {
       console.error('Error loading game states:', error);
       // 出错时回退到默认游戏列表

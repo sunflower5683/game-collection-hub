@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from 'react';
-import Image from 'next/image';
 
 export default function GameCard({ game }) {
   const [imageLoaded, setImageLoaded] = useState(false);
@@ -32,19 +31,15 @@ export default function GameCard({ game }) {
           </div>
         )}
         
-        {/* 实际图片（隐藏直到加载完成） */}
-        <Image
+        {/* 使用标准img标签替代Next.js Image组件 */}
+        <img
           src={game.thumbnailUrl || '/images/game-placeholder.svg'}
           alt={game.title}
-          fill={true}
-          sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-          className={`object-cover transition-opacity duration-300 ${
+          className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-300 ${
             imageLoaded && !imageError ? 'opacity-100' : 'opacity-0'
           }`}
           onLoad={handleImageLoad}
           onError={handleImageError}
-          priority={false}
-          quality={80}
         />
       </div>
       

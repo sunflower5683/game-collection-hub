@@ -34,19 +34,77 @@ export default function GamesManagement() {
     } else {
       setIsAuthenticated(true);
       
-      // 从localStorage获取游戏的激活状态
-      const activeStates = JSON.parse(localStorage.getItem('gameActiveStates') || '{}');
-      
-      // 合并games数据和激活状态
-      const gamesWithState = games.map(game => ({
-        ...game,
-        isActive: activeStates[game.id] === undefined ? true : activeStates[game.id]
-      }));
-      
-      setGamesList(gamesWithState);
+      loadGames();
     }
     setIsLoading(false);
   }, [router]);
+  
+  // 将游戏加载逻辑提取为独立函数
+  const loadGames = () => {
+    // 从localStorage获取游戏的激活状态
+    const activeStates = JSON.parse(localStorage.getItem('gameActiveStates') || '{}');
+    const adminGames = JSON.parse(localStorage.getItem('adminGames') || '[]');
+    console.log('管理员添加的游戏:', adminGames);
+    
+    // 合并games数据和激活状态
+    const gamesWithState = games.map(game => ({
+      ...game,
+      isActive: activeStates[game.id] === undefined ? true : activeStates[game.id]
+    }));
+    
+    // 合并自定义游戏
+    const allGames = [...gamesWithState];
+    adminGames.forEach((customGame: Game) => {
+      // 为自定义游戏添加默认激活状态
+      const gameWithActive = {
+        ...customGame,
+        isActive: activeStates[customGame.id] === undefined ? true : activeStates[customGame.id]
+      };
+      allGames.push(gameWithActive);
+    });
+    
+    setGamesList(allGames);
+  };
+
+  // 修复自定义游戏格式问题
+  const fixGameFormats = () => {
+    // 从localStorage获取自定义游戏
+    const adminGames = JSON.parse(localStorage.getItem('adminGames') || '[]');
+    const activeStates = JSON.parse(localStorage.getItem('gameActiveStates') || '{}');
+    
+    // 修复格式
+    const fixedGames = adminGames.map((game: Game) => {
+      // 生成正确格式的slug
+      const normalizedSlug = game.title
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-');
+      
+      // 返回修复后的游戏
+      return {
+        ...game,
+        id: normalizedSlug,   // 使用正确格式的ID
+        slug: normalizedSlug, // 使用正确格式的slug
+        isActive: true        // 确保激活状态为true
+      };
+    });
+    
+    // 保存修复后的游戏
+    localStorage.setItem('adminGames', JSON.stringify(fixedGames));
+    
+    // 更新激活状态
+    const newActiveStates = { ...activeStates };
+    fixedGames.forEach((game: Game) => {
+      newActiveStates[game.id] = true; // 将所有游戏设为激活
+    });
+    localStorage.setItem('gameActiveStates', JSON.stringify(newActiveStates));
+    
+    // 重新加载游戏
+    loadGames();
+    
+    alert('游戏格式已修复，所有游戏均已设置为激活状态。');
+  };
 
   const toggleGameStatus = (gameId: string) => {
     // 更新游戏列表状态
@@ -95,6 +153,15 @@ export default function GamesManagement() {
         <h1 className="text-3xl font-bold text-gray-800 dark:text-white">游戏管理</h1>
         
         <div className="flex space-x-4">
+          <button
+            onClick={loadGames}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 dark:text-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
+          >
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4 mr-1" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            刷新数据
+          </button>
           <Link 
             href="/admin"
             className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-gray-700 bg-gray-200 hover:bg-gray-300 dark:text-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600"
@@ -107,6 +174,50 @@ export default function GamesManagement() {
           >
             添加新游戏
           </Link>
+        </div>
+      </div>
+      
+      {/* 调试信息 */}
+      <div className="bg-yellow-50 border-l-4 border-yellow-400 p-4 mb-6">
+        <div className="flex">
+          <div className="flex-shrink-0">
+            <svg className="h-5 w-5 text-yellow-400" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+              <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+            </svg>
+          </div>
+          <div className="ml-3">
+            <p className="text-sm text-yellow-700">
+              添加的游戏在首页不显示？尝试以下操作：
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              <button
+                onClick={() => {
+                  localStorage.removeItem('gameActiveStates');
+                  loadGames();
+                  alert('已重置所有游戏激活状态');
+                }}
+                className="inline-block px-3 py-1 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-md hover:bg-yellow-200"
+              >
+                重置所有激活状态
+              </button>
+              
+              <button
+                onClick={fixGameFormats}
+                className="inline-block px-3 py-1 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-md hover:bg-yellow-200"
+              >
+                修复游戏格式问题
+              </button>
+              
+              <button
+                onClick={() => {
+                  window.location.href = '/';
+                }}
+                className="inline-block px-3 py-1 text-xs font-medium text-yellow-700 bg-yellow-100 rounded-md hover:bg-yellow-200"
+              >
+                强制刷新首页
+              </button>
+            </div>
+          </div>
         </div>
       </div>
       

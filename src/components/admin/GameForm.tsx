@@ -21,6 +21,12 @@ interface GameFormProps {
   isEditing?: boolean;
 }
 
+// 默认图片选项
+const DEFAULT_IMAGES = [
+  { path: '/images/game-placeholder.svg', label: '默认占位图' },
+  { path: '/images/games/mygame-thumbnail.png', label: 'Dead Land 缩略图' }
+];
+
 export default function GameForm({ game, isEditing = false }: GameFormProps) {
   const router = useRouter();
   const [formData, setFormData] = useState<Game>({
@@ -42,6 +48,8 @@ export default function GameForm({ game, isEditing = false }: GameFormProps) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [showEmbedPreview, setShowEmbedPreview] = useState(false);
+  const [showImageSelector, setShowImageSelector] = useState(false);
+  const [thumbnailPreview, setThumbnailPreview] = useState<string | null>(null);
 
   useEffect(() => {
     // 从localStorage获取现有分类和标签
@@ -59,19 +67,43 @@ export default function GameForm({ game, isEditing = false }: GameFormProps) {
           ...game,
           isActive: game.isActive === undefined ? true : game.isActive
         });
+        setThumbnailPreview(game.thumbnailUrl);
+      } else {
+        // 新建游戏时，设置预览为默认图片
+        setThumbnailPreview(formData.thumbnailUrl);
       }
     } catch (error) {
       console.error('Error loading game data:', error);
     }
-  }, [game, isEditing]);
+  }, [game, isEditing, formData.thumbnailUrl]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     
-    setFormData(prev => ({
-      ...prev,
-      [name]: name === 'featured' ? (e.target as HTMLInputElement).checked : value
-    }));
+    setFormData(prev => {
+      const newData = {
+        ...prev,
+        [name]: name === 'featured' ? (e.target as HTMLInputElement).checked : value
+      };
+      
+      // 如果更新了标题，自动生成slug（仅对新游戏）
+      if (name === 'title' && !isEditing) {
+        const generatedSlug = value
+          .toLowerCase()
+          .trim()
+          .replace(/[^\w\s-]/g, '')  // 移除特殊字符
+          .replace(/\s+/g, '-');     // 空格替换为连字符
+        
+        newData.slug = generatedSlug;
+      }
+      
+      // 如果更新了缩略图URL，更新预览
+      if (name === 'thumbnailUrl') {
+        setThumbnailPreview(value);
+      }
+      
+      return newData;
+    });
     
     // 清除字段的错误信息
     if (errors[name]) {
@@ -81,6 +113,15 @@ export default function GameForm({ game, isEditing = false }: GameFormProps) {
         return newErrors;
       });
     }
+  };
+
+  const handleImageSelect = (path: string) => {
+    setFormData(prev => ({
+      ...prev,
+      thumbnailUrl: path
+    }));
+    setThumbnailPreview(path);
+    setShowImageSelector(false);
   };
 
   const handleTagAdd = () => {
@@ -104,15 +145,40 @@ export default function GameForm({ game, isEditing = false }: GameFormProps) {
     const newErrors: Record<string, string> = {};
     
     if (!formData.title.trim()) newErrors.title = '游戏标题不能为空';
-    if (!formData.slug.trim()) newErrors.slug = '游戏Slug不能为空';
     if (!formData.description.trim()) newErrors.description = '游戏描述不能为空';
     if (!formData.embedUrl.trim()) newErrors.embedUrl = '游戏嵌入URL不能为空';
     if (!formData.category.trim()) newErrors.category = '游戏分类不能为空';
     if (formData.tags.length === 0) newErrors.tags = '至少需要一个标签';
     
-    // 生成ID (如果是新游戏)
+    // 自动生成和规范化slug (如果是新游戏或slug为空)
+    if (!isEditing || !formData.slug.trim()) {
+      // 从标题生成slug：小写，移除特殊字符，空格替换为连字符
+      const generatedSlug = formData.title
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')  // 移除特殊字符
+        .replace(/\s+/g, '-');     // 空格替换为连字符
+      
+      setFormData(prev => ({
+        ...prev,
+        slug: generatedSlug
+      }));
+    }
+    
+    // 生成ID (与slug保持一致)
     if (!isEditing) {
-      formData.id = formData.slug.toLowerCase().replace(/[^a-z0-9]+/g, '-');
+      // 确保slug已被规范化
+      const normalizedSlug = formData.slug
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')  
+        .replace(/\s+/g, '-');
+      
+      setFormData(prev => ({
+        ...prev,
+        id: normalizedSlug,
+        slug: normalizedSlug
+      }));
     }
     
     setErrors(newErrors);
@@ -127,36 +193,63 @@ export default function GameForm({ game, isEditing = false }: GameFormProps) {
     setIsSubmitting(true);
     
     try {
+      // 确保slug和ID被正确格式化（小写、使用连字符）
+      const normalizedSlug = formData.title
+        .toLowerCase()
+        .trim()
+        .replace(/[^\w\s-]/g, '')
+        .replace(/\s+/g, '-');
+      
+      // 准备要保存的游戏数据
+      const gameToSave = {
+        ...formData,
+        id: isEditing ? formData.id : normalizedSlug,
+        slug: normalizedSlug
+      };
+      
       // 从localStorage获取现有游戏
       const existingGames = JSON.parse(localStorage.getItem('adminGames') || '[]');
+      console.log('当前已有的自定义游戏:', existingGames);
       
       let updatedGames;
       
       if (isEditing) {
         // 更新现有游戏
         updatedGames = existingGames.map((g: Game) => 
-          g.id === formData.id ? formData : g
+          g.id === gameToSave.id ? gameToSave : g
         );
       } else {
         // 添加新游戏
-        const newId = formData.id;
+        const newId = gameToSave.id;
         
         // 检查ID是否已存在
         const idExists = existingGames.some((g: Game) => g.id === newId);
         if (idExists) {
-          setErrors({ slug: '该Slug已被使用，请选择另一个' });
+          setErrors({ slug: '该游戏ID已被使用，请选择不同的标题' });
           setIsSubmitting(false);
           return;
         }
         
-        updatedGames = [...existingGames, formData];
+        updatedGames = [...existingGames, gameToSave];
       }
       
       // 保存回localStorage
       localStorage.setItem('adminGames', JSON.stringify(updatedGames));
+      console.log('保存后的自定义游戏:', updatedGames);
       
-      // 重定向回游戏列表
-      router.push('/admin/games');
+      // 确保游戏激活状态正确设置
+      const activeStates = JSON.parse(localStorage.getItem('gameActiveStates') || '{}');
+      activeStates[gameToSave.id] = gameToSave.isActive;
+      localStorage.setItem('gameActiveStates', JSON.stringify(activeStates));
+      
+      // 显示成功消息
+      if (window.confirm('游戏保存成功! 您想要返回列表页还是查看首页?')) {
+        // 回到管理页
+        router.push('/admin/games');
+      } else {
+        // 跳转到首页查看
+        window.location.href = '/'; // 强制页面刷新，确保数据重新加载
+      }
       
     } catch (error) {
       console.error('保存游戏时出错:', error);
@@ -191,22 +284,19 @@ export default function GameForm({ game, isEditing = false }: GameFormProps) {
           
           <div>
             <label htmlFor="slug" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-              游戏Slug * (唯一标识，用于URL)
+              URL路径 <span className="text-xs text-gray-500">(自动生成)</span>
             </label>
-            <input
-              type="text"
-              id="slug"
-              name="slug"
-              value={formData.slug}
-              onChange={handleChange}
-              disabled={isEditing}
-              className={`w-full px-4 py-2 border rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white ${
-                errors.slug ? 'border-red-500' : 'border-gray-300'
-              } ${isEditing ? 'bg-gray-100 dark:bg-gray-800 cursor-not-allowed' : ''}`}
-            />
-            {errors.slug && (
-              <p className="mt-1 text-sm text-red-500">{errors.slug}</p>
-            )}
+            <div className="relative">
+              <span className="absolute inset-y-0 left-0 pl-3 flex items-center text-gray-500">/games/</span>
+              <input
+                type="text"
+                id="slug"
+                value={formData.slug}
+                readOnly
+                className="w-full pl-16 pr-4 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white cursor-not-allowed"
+              />
+            </div>
+            <p className="mt-1 text-xs text-gray-500">此URL将用于访问游戏页面</p>
           </div>
         </div>
         
@@ -279,15 +369,78 @@ export default function GameForm({ game, isEditing = false }: GameFormProps) {
             <label htmlFor="thumbnailUrl" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               缩略图URL
             </label>
-            <input
-              type="text"
-              id="thumbnailUrl"
-              name="thumbnailUrl"
-              value={formData.thumbnailUrl}
-              onChange={handleChange}
-              className="w-full px-4 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-            />
-            <p className="mt-1 text-sm text-gray-500">默认为占位图</p>
+            <div className="flex mb-2">
+              <input
+                type="text"
+                id="thumbnailUrl"
+                name="thumbnailUrl"
+                value={formData.thumbnailUrl}
+                onChange={handleChange}
+                className="w-full px-4 py-2 border border-gray-300 rounded-l-md shadow-sm focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+              />
+              <button
+                type="button"
+                onClick={() => setShowImageSelector(!showImageSelector)}
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-r-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                选择图片
+              </button>
+            </div>
+            
+            {/* 图片选择器 */}
+            {showImageSelector && (
+              <div className="mt-2 p-4 border border-gray-300 rounded-md bg-gray-50 dark:bg-gray-800 dark:border-gray-700">
+                <h3 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">选择一个图片:</h3>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 mb-4">
+                  {DEFAULT_IMAGES.map((img) => (
+                    <div 
+                      key={img.path}
+                      onClick={() => handleImageSelect(img.path)}
+                      className={`cursor-pointer border-2 rounded-md overflow-hidden hover:border-blue-500 ${
+                        formData.thumbnailUrl === img.path ? 'border-blue-500' : 'border-gray-200 dark:border-gray-700'
+                      }`}
+                    >
+                      <div className="relative pt-[56.25%] bg-gray-100 dark:bg-gray-700">
+                        <img 
+                          src={img.path} 
+                          alt={img.label}
+                          className="absolute inset-0 w-full h-full object-cover"
+                        />
+                      </div>
+                      <div className="p-2 text-xs text-center text-gray-700 dark:text-gray-300 truncate">
+                        {img.label}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <p className="text-xs text-gray-500 dark:text-gray-400 mt-2">
+                  或者输入自定义路径，例如：/images/games/your-image.png
+                </p>
+              </div>
+            )}
+            
+            {/* 图片预览 */}
+            {thumbnailPreview && (
+              <div className="mt-3 border rounded-md overflow-hidden w-40">
+                <div className="relative pt-[56.25%] bg-gray-100 dark:bg-gray-700">
+                  <img 
+                    src={thumbnailPreview} 
+                    alt="缩略图预览"
+                    className="absolute inset-0 w-full h-full object-cover"
+                    onError={() => setThumbnailPreview(null)}
+                  />
+                </div>
+                <div className="p-1 text-xs text-center text-gray-700 dark:text-gray-300">
+                  预览
+                </div>
+              </div>
+            )}
+            
+            <p className="mt-3 text-sm text-gray-500">
+              使用以下格式：<br/>
+              - 项目内图片：/images/games/your-image.png（图片需放在public/images/games/目录）<br/>
+              - 外部图片：https://example.com/your-image.jpg（完整URL）
+            </p>
           </div>
         </div>
       </div>

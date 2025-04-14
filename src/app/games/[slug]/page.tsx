@@ -29,10 +29,19 @@ export default function GamePage({ params }: { params: { slug: string } }) {
   const [gameData, setGameData] = useState<Game | null>(null);
   const [relatedGames, setRelatedGames] = useState<Game[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [currentSlug, setCurrentSlug] = useState<string>("");
   
-  const slugParam = params.slug;
+  // 在useEffect中安全地访问参数
+  useEffect(() => {
+    if (params?.slug) {
+      setCurrentSlug(params.slug);
+    }
+  }, [params]);
   
   useEffect(() => {
+    // 如果slug未设置，则不执行
+    if (!currentSlug) return;
+    
     // 从localStorage获取游戏的激活状态和自定义游戏
     try {
       const activeStates = JSON.parse(localStorage.getItem('gameActiveStates') || '{}');
@@ -41,15 +50,13 @@ export default function GamePage({ params }: { params: { slug: string } }) {
       // 合并默认游戏和自定义游戏
       const allGames = [...games];
       
-      // 添加未存在的自定义游戏
+      // 直接添加自定义游戏，不检查ID重复
       customGames.forEach((customGame: Game) => {
-        if (!allGames.some(g => g.id === customGame.id)) {
-          allGames.push(customGame);
-        }
+        allGames.push(customGame);
       });
       
       // 查找当前游戏
-      const foundGame = allGames.find(g => g.slug === slugParam);
+      const foundGame = allGames.find(g => g.slug === currentSlug);
       
       if (!foundGame) {
         // 游戏不存在，重定向到404
@@ -105,7 +112,7 @@ export default function GamePage({ params }: { params: { slug: string } }) {
     } finally {
       setIsLoading(false);
     }
-  }, [slugParam, router]);
+  }, [currentSlug, router]);
   
   if (isLoading) {
     return (
@@ -237,14 +244,10 @@ export default function GamePage({ params }: { params: { slug: string } }) {
                     <div className="flex items-center p-4">
                       <div className="w-16 h-16 bg-gray-200 dark:bg-gray-700 rounded mr-4 flex-shrink-0 flex items-center justify-center relative">
                         {relatedGame.thumbnailUrl ? (
-                          <Image 
-                            src={relatedGame.thumbnailUrl} 
-                            alt={relatedGame.title} 
-                            fill={true}
-                            sizes="64px"
-                            className="object-cover rounded"
-                            priority={false}
-                            quality={75}
+                          <img 
+                            src={relatedGame.thumbnailUrl}
+                            alt={relatedGame.title}
+                            className="w-full h-full object-cover rounded"
                           />
                         ) : (
                           <span className="text-xs text-gray-500">{relatedGame.title.substring(0, 2)}</span>

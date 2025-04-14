@@ -39,15 +39,18 @@ export default function GamesPage() {
       const activeStates = JSON.parse(localStorage.getItem('gameActiveStates') || '{}');
       const customGames = JSON.parse(localStorage.getItem('adminGames') || '[]');
       
+      console.log("游戏列表页 - 自定义游戏数据:", customGames);
+      
       // 合并默认游戏和自定义游戏
       const allGames = [...games];
       
-      // 添加未存在的自定义游戏
+      // 直接添加自定义游戏，不检查ID重复
       customGames.forEach((customGame: Game) => {
-        if (!allGames.some(g => g.id === customGame.id)) {
-          allGames.push(customGame);
-        }
+        console.log(`添加自定义游戏: ${customGame.title} (ID: ${customGame.id})`);
+        allGames.push(customGame);
       });
+      
+      console.log(`合并后游戏总数: ${allGames.length}`);
       
       // 添加激活状态到游戏
       const gamesWithState = allGames.map(game => ({
@@ -55,9 +58,9 @@ export default function GamesPage() {
         isActive: activeStates[game.id] === undefined ? true : activeStates[game.id]
       }));
       
-      // 只保留激活的游戏
-      const active = gamesWithState.filter(game => game.isActive);
-      setActiveGames(active);
+      // 设置所有游戏，暂不过滤激活状态
+      setActiveGames(gamesWithState);
+      console.log(`游戏列表页 - 设置游戏数: ${gamesWithState.length}`);
       
     } catch (error) {
       console.error('Error loading game data:', error);
@@ -72,17 +75,24 @@ export default function GamesPage() {
   useEffect(() => {
     let result = [...activeGames];
     
+    // 首先过滤掉非活跃游戏
+    result = result.filter(game => game.isActive);
+    console.log(`过滤后活跃游戏数量: ${result.length}`);
+    
     // 应用分类过滤
     if (categoryParam) {
       setSelectedCategory(categoryParam);
       result = result.filter(game => game.category === categoryParam);
+      console.log(`分类"${categoryParam}"过滤后: ${result.length}`);
     } else if (selectedCategory) {
       result = result.filter(game => game.category === selectedCategory);
+      console.log(`分类"${selectedCategory}"过滤后: ${result.length}`);
     }
     
     // 应用标签过滤
     if (tagParam) {
       result = result.filter(game => game.tags.includes(tagParam));
+      console.log(`标签"${tagParam}"过滤后: ${result.length}`);
     }
     
     // 应用搜索过滤
@@ -93,6 +103,7 @@ export default function GamesPage() {
         game.description.toLowerCase().includes(query) ||
         game.tags.some(tag => tag.toLowerCase().includes(query))
       );
+      console.log(`搜索"${searchQuery}"过滤后: ${result.length}`);
     }
     
     setFilteredGames(result);
