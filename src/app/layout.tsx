@@ -1,5 +1,6 @@
 import { Metadata } from 'next';
 import "./globals.css";
+import Link from 'next/link';
 
 export const metadata: Metadata = {
   title: "游戏集合站 - 畅玩免费在线游戏",
@@ -31,14 +32,14 @@ export default function RootLayout({
             <nav>
               <ul className="flex space-x-6">
                 <li>
-                  <a href="/" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                  <Link href="/" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                     首页
-                  </a>
+                  </Link>
                 </li>
                 <li>
-                  <a href="/games" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
+                  <Link href="/games" className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400">
                     游戏库
-                  </a>
+                  </Link>
                 </li>
               </ul>
             </nav>
