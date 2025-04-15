@@ -61,7 +61,9 @@ export default function GameEmbed({ game }) {
             allowFullScreen
             onLoad={handleIframeLoad}
             onError={handleIframeError}
-            sandbox="allow-same-origin allow-scripts allow-popups allow-forms"
+            sandbox="allow-same-origin allow-scripts allow-popups allow-forms allow-pointer-lock allow-top-navigation allow-modals"
+            referrerPolicy="no-referrer-when-downgrade"
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             style={{ display: isLoading ? 'none' : 'block' }}
           />
         )}

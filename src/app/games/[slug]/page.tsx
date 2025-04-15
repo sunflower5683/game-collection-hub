@@ -1,11 +1,12 @@
 "use client";
 
 import { useState, useEffect } from 'react';
+import { useRouter, notFound } from 'next/navigation';
+import { useParams } from 'next/navigation';
 import { games } from "@/data/games";
 import GameEmbed from "@/components/game/GameEmbed";
-import { notFound, useRouter } from "next/navigation";
-import { generateGameSchema } from "@/app/api/schema";
-import Script from "next/script";
+import Script from 'next/script';
+import { generateGameSchema } from '@/app/api/schema';
 import Image from "next/image";
 
 // 客户端组件不能直接导出元数据
@@ -24,8 +25,9 @@ interface Game {
   isActive?: boolean;
 }
 
-export default function GamePage({ params }: { params: { slug: string } }) {
+export default function GamePage() {
   const router = useRouter();
+  const params = useParams();
   const [gameData, setGameData] = useState<Game | null>(null);
   const [relatedGames, setRelatedGames] = useState<Game[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -34,7 +36,9 @@ export default function GamePage({ params }: { params: { slug: string } }) {
   // 在useEffect中安全地访问参数
   useEffect(() => {
     if (params?.slug) {
-      setCurrentSlug(params.slug);
+      // 确保slug是字符串
+      const slugParam = Array.isArray(params.slug) ? params.slug[0] : params.slug;
+      setCurrentSlug(slugParam);
     }
   }, [params]);
   
@@ -46,6 +50,8 @@ export default function GamePage({ params }: { params: { slug: string } }) {
     try {
       const activeStates = JSON.parse(localStorage.getItem('gameActiveStates') || '{}');
       const customGames = JSON.parse(localStorage.getItem('adminGames') || '[]');
+      
+      console.log(`加载游戏详情: slug=${currentSlug}`);
       
       // 合并默认游戏和自定义游戏
       const allGames = [...games];
@@ -60,6 +66,7 @@ export default function GamePage({ params }: { params: { slug: string } }) {
       
       if (!foundGame) {
         // 游戏不存在，重定向到404
+        console.error(`未找到游戏: slug=${currentSlug}`);
         notFound();
         return;
       }
@@ -78,6 +85,7 @@ export default function GamePage({ params }: { params: { slug: string } }) {
         ...foundGame,
         isActive
       });
+      console.log(`找到游戏:`, foundGame);
       
       // 查找相关游戏（并过滤只显示已激活的）
       const gamesWithState = allGames.map(game => ({
