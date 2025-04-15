@@ -5,6 +5,7 @@ import CategoryFilter from "@/components/ui/CategoryFilter";
 import TagFilter from "@/components/ui/TagFilter";
 import Pagination from "@/components/ui/Pagination";
 import { Metadata } from "next";
+import Link from 'next/link';
 
 export async function generateMetadata({ searchParams }: { searchParams: { q?: string } }): Promise<Metadata> {
   const query = (await searchParams).q || '';
@@ -117,12 +118,12 @@ export default async function SearchPage({ searchParams }: { searchParams: { q?:
                 尝试不同的搜索词或浏览我们的游戏分类
               </p>
               <div className="flex justify-center">
-                <a 
+                <Link 
                   href="/games"
                   className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-full transition duration-150"
                 >
                   浏览所有游戏
-                </a>
+                </Link>
               </div>
             </div>
           )}

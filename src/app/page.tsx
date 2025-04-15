@@ -5,6 +5,7 @@ import GameList from "@/components/game/GameList";
 import { generateGameCollectionSchema, generateOrganizationSchema } from "@/app/api/schema";
 import Script from "next/script";
 import { useEffect, useState } from "react";
+import Link from 'next/link';
 
 // 客户端组件不能直接导出静态元数据
 // 元数据已移到layout.tsx中
@@ -117,12 +118,12 @@ export default function Home() {
           <p className="text-xl max-w-3xl mx-auto mb-8">
             发现并畅玩各种精彩在线游戏，无需下载，随时随地开始您的游戏之旅！
           </p>
-          <a 
+          <Link 
             href="/games" 
             className="inline-block bg-white text-blue-600 font-medium py-3 px-8 rounded-full hover:bg-gray-100 transition duration-300"
           >
             浏览全部游戏
-          </a>
+          </Link>
         </div>
       </section>
       
@@ -157,7 +158,7 @@ export default function Home() {
           
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
             {categories.map(category => (
-              <a 
+              <Link
                 key={category}
                 href={`/games?category=${category}`}
                 className="block p-6 bg-white dark:bg-gray-800 rounded-lg shadow-md hover:shadow-lg transition-shadow duration-300"
@@ -174,7 +175,7 @@ export default function Home() {
                     <path fillRule="evenodd" d="M10.293 5.293a1 1 0 011.414 0l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414-1.414L12.586 11H5a1 1 0 110-2h7.586l-2.293-2.293a1 1 0 010-1.414z" clipRule="evenodd" />
                   </svg>
                 </span>
-              </a>
+              </Link>
             ))}
           </div>
         </div>
@@ -182,12 +183,12 @@ export default function Home() {
       
       {/* 管理员入口 */}
       <div className="text-center py-8">
-        <a
+        <Link
           href="/admin"
           className="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
         >
           管理员入口
-        </a>
+        </Link>
       </div>
     </main>
   );
