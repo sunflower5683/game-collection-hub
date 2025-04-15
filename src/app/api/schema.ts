@@ -4,7 +4,17 @@
  * @param baseUrl 网站基础URL
  * @returns JSON-LD结构化数据对象
  */
-export function generateGameSchema(game: any, baseUrl: string = 'https://gamecollectionhub.example.com') {
+interface GameData {
+  title: string;
+  description: string;
+  slug: string;
+  thumbnailUrl?: string;
+  category: string;
+  tags: string[];
+  [key: string]: any; // 允许其他属性
+}
+
+export function generateGameSchema(game: GameData, baseUrl: string = 'https://gamecollectionhub.example.com') {
   return {
     '@context': 'https://schema.org',
     '@type': 'VideoGame',
@@ -32,7 +42,7 @@ export function generateGameSchema(game: any, baseUrl: string = 'https://gamecol
  * @param baseUrl 网站基础URL
  * @returns JSON-LD结构化数据对象
  */
-export function generateGameCollectionSchema(games: any[], baseUrl: string = 'https://gamecollectionhub.example.com') {
+export function generateGameCollectionSchema(games: GameData[], baseUrl: string = 'https://gamecollectionhub.example.com') {
   return {
     '@context': 'https://schema.org',
     '@type': 'CollectionPage',

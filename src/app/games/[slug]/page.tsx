@@ -7,7 +7,7 @@ import { games } from "@/data/games";
 import GameEmbed from "@/components/game/GameEmbed";
 import Script from 'next/script';
 import { generateGameSchema } from '@/app/api/schema';
-import Image from "next/image";
+import Link from 'next/link';
 
 // 客户端组件不能直接导出元数据
 // 元数据在layout.tsx中已定义
@@ -148,9 +148,9 @@ export default function GamePage() {
       
       {/* 游戏路径导航 */}
       <div className="mb-4 text-sm text-gray-500 dark:text-gray-400">
-        <a href="/" className="hover:text-blue-600 dark:hover:text-blue-400">首页</a> &gt; 
-        <a href="/games" className="mx-2 hover:text-blue-600 dark:hover:text-blue-400">游戏库</a> &gt; 
-        <a href={`/games?category=${gameData.category}`} className="mx-2 hover:text-blue-600 dark:hover:text-blue-400">{gameData.category}游戏</a> &gt; 
+        <Link href="/" className="hover:text-blue-600 dark:hover:text-blue-400">首页</Link> &gt; 
+        <Link href="/games" className="mx-2 hover:text-blue-600 dark:hover:text-blue-400">游戏库</Link> &gt; 
+        <Link href={`/games?category=${gameData.category}`} className="mx-2 hover:text-blue-600 dark:hover:text-blue-400">{gameData.category}游戏</Link> &gt; 
         <span className="mx-2 text-gray-700 dark:text-gray-300">{gameData.title}</span>
       </div>
       
@@ -174,25 +174,25 @@ export default function GamePage() {
               
               <div className="mt-6">
                 <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">分类</h3>
-                <a 
+                <Link 
                   href={`/games?category=${gameData.category}`}
                   className="inline-block bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-100 px-3 py-1 rounded-full text-sm hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
                 >
                   {gameData.category}
-                </a>
+                </Link>
               </div>
               
               <div className="mt-4">
                 <h3 className="text-lg font-semibold mb-2 text-gray-800 dark:text-white">标签</h3>
                 <div className="flex flex-wrap gap-2">
                   {gameData.tags.map((tag) => (
-                    <a 
+                    <Link 
                       key={tag} 
                       href={`/games?tag=${tag}`}
                       className="bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 px-3 py-1 rounded-full text-sm hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
                     >
                       {tag}
-                    </a>
+                    </Link>
                   ))}
                 </div>
               </div>
@@ -244,7 +244,7 @@ export default function GamePage() {
               <h2 className="text-xl font-bold mb-4 text-gray-800 dark:text-white">相似游戏</h2>
               <div className="grid grid-cols-1 gap-4">
                 {relatedGames.map((relatedGame) => (
-                  <a
+                  <Link
                     key={relatedGame.id}
                     href={`/games/${relatedGame.slug}`}
                     className="block bg-white dark:bg-gray-800 rounded-lg overflow-hidden shadow-md hover:shadow-lg transition-shadow duration-300"
@@ -270,7 +270,7 @@ export default function GamePage() {
                         </p>
                       </div>
                     </div>
-                  </a>
+                  </Link>
                 ))}
               </div>
             </div>
@@ -279,12 +279,12 @@ export default function GamePage() {
       </div>
       
       <div className="text-center mt-12">
-        <a 
+        <Link 
           href="/games" 
           className="inline-block bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-full transition duration-150"
         >
           返回游戏库
-        </a>
+        </Link>
       </div>
     </div>
   );

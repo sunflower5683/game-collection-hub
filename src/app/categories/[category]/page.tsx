@@ -3,6 +3,7 @@ import GameList from "@/components/game/GameList";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Script from "next/script";
+import Link from 'next/link';
 
 // 动态生成元数据
 export async function generateMetadata({ params }: { params: { category: string } }): Promise<Metadata> {
@@ -81,7 +82,7 @@ export default function CategoryPage({ params }: { params: { category: string } 
         <h2 className="text-xl font-semibold mb-4 text-gray-800 dark:text-white">浏览其他分类</h2>
         <div className="flex flex-wrap gap-3">
           {allCategories.map(category => (
-            <a
+            <Link
               key={category}
               href={`/categories/${encodeURIComponent(category)}`}
               className={`px-4 py-2 rounded-full text-sm ${
@@ -91,7 +92,7 @@ export default function CategoryPage({ params }: { params: { category: string } 
               }`}
             >
               {category}游戏
-            </a>
+            </Link>
           ))}
         </div>
       </section>
@@ -116,12 +117,12 @@ export default function CategoryPage({ params }: { params: { category: string } 
       </section>
       
       <div className="text-center mt-12">
-        <a 
-          href="/games" 
+        <Link 
+          href="/games/" 
           className="inline-block bg-blue-600 hover:bg-blue-700 text-white py-2 px-6 rounded-full transition duration-150"
         >
-          浏览全部游戏
-        </a>
+          查看所有游戏
+        </Link>
       </div>
     </div>
   );
