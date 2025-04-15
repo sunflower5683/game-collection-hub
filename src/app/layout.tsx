@@ -26,9 +26,9 @@ export default function RootLayout({
       <body>
         <header className="bg-white dark:bg-gray-900 shadow-md">
           <div className="container mx-auto px-4 py-4 flex justify-between items-center">
-            <a href="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">
+            <Link href="/" className="text-xl font-bold text-blue-600 dark:text-blue-400">
               游戏集合站
-            </a>
+            </Link>
             <nav>
               <ul className="flex space-x-6">
                 <li>
